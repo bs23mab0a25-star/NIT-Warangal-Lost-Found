@@ -44,7 +44,7 @@ function updateCategoryOptions() {
 // Fetch items from Supabase
 async function fetchItems() {
   const { data, error } = await supabase
-    .from('lostFoundItems')
+    .from('lostfound_items')
     .select('*');
 
   if (error) {
@@ -58,8 +58,8 @@ async function fetchItems() {
 
 // Listen for real-time updates
 supabase
-  .channel('lostFoundItems')
-  .on('postgres_changes', { event: '*', schema: 'public', table: 'lostFoundItems' }, () => {
+  .channel('lostfound_items')
+  .on('postgres_changes', { event: '*', schema: 'public', table: 'lostfound_items' }, () => {
     fetchItems();
   })
   .subscribe();
@@ -122,7 +122,7 @@ function renderItems() {
 }
 
 // Add new item
-itemForm.addEventListener('submit', function(e) {
+itemForm.addEventListener('submit', async function(e) {
   e.preventDefault();
 
   const itemName = document.getElementById('itemName').value;
@@ -135,22 +135,31 @@ itemForm.addEventListener('submit', function(e) {
   const deletePassword = document.getElementById('deletePassword').value;
   const imageFile = document.getElementById('imageUpload').files[0];
 
-  // Read image as Base64
+  let imageUrl = '';
+
+  // Upload image to Supabase Storage
   if (imageFile) {
-    if (imageFile.size > 1024 * 1024) {
-      alert("Image is too large. Please choose an image under 1MB.");
+    const fileName = `${Date.now()}_${imageFile.name.replace(/\s/g, '_')}`;
+    const { data, error } = await supabase.storage
+      .from('shashi')
+      .upload(fileName, imageFile);
+
+    if (error) {
+      console.error('Error uploading image:', error);
+      alert('Error uploading image. Please try again.');
       return;
     }
-    const reader = new FileReader();
-    reader.onload = function() {
-      saveItem(reader.result);
-    };
-    reader.readAsDataURL(imageFile);
-  } else {
-    saveItem('');
+
+    const { data: publicUrlData } = supabase.storage
+      .from('shashi')
+      .getPublicUrl(fileName);
+    
+    imageUrl = publicUrlData.publicUrl;
   }
 
-  async function saveItem(imageData) {
+  await saveItem(imageUrl);
+
+  async function saveItem(imageUrl) {
     console.log('Saving item:', itemName, category, statusType);
     const newItem = {
       itemName,
@@ -161,13 +170,13 @@ itemForm.addEventListener('submit', function(e) {
       statusType,
       date,
       deletePassword,
-      image: imageData,
+      image: imageUrl,
       claimedBy: []
     };
     
     try {
       const { error } = await supabase
-        .from('lostFoundItems')
+        .from('lostfound_items')
         .insert([newItem]);
 
       if (error) throw error;
@@ -196,7 +205,7 @@ async function claimItem(itemId) {
     const claimInfo = `Name: ${claimerName}, Roll: ${claimerRoll}, Contact: ${claimerContact}`;
     if (!item.claimedBy.some(claim => claim.includes(claimerRoll))) {
       const { error } = await supabase
-        .from('lostFoundItems')
+        .from('lostfound_items')
         .update({ claimedBy: [...item.claimedBy, claimInfo] })
         .eq('id', itemId);
 
@@ -224,7 +233,7 @@ async function deleteItem(itemId) {
     const confirmDelete = confirm('Are you sure you want to delete this item? Only delete if it is claimed appropriately.');
     if (confirmDelete) {
       const { error } = await supabase
-        .from('lostFoundItems')
+        .from('lostfound_items')
         .delete()
         .eq('id', itemId);
 
@@ -237,4 +246,3 @@ async function deleteItem(itemId) {
 
 // Initial render
 // renderItems(); // Removed because onSnapshot handles the initial render
-
