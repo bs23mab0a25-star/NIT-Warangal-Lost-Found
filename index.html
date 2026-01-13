@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>NIT-Warangal Lost & Found</title>
+  <link rel="stylesheet" href="sss.css">
+</head>
+<body>
+  <header>
+    <h1>NIT-Warangal Lost & Found</h1>
+  </header>
+
+  <main>
+    <!-- Lost/Found Item Form -->
+   <section class="form-section">
+  <h2>Report Lost/Found Item</h2>
+  <form id="itemForm">
+    <!-- Row 1: Name, Category, Type -->
+    <div class="form-row">
+      <input type="text" id="itemName" placeholder="Item Name" required>
+      <input type="text" id="category" placeholder="Category (Phone, Wallet, ID...)" required>
+      <select id="statusType" required>
+        <option value="Lost">Lost</option>
+        <option value="Found">Found</option>
+      </select>
+    </div>
+
+    <!-- Row 2: Location, Date -->
+    <div class="form-row">
+      <input type="text" id="location" placeholder="Location" required>
+      <input type="date" id="date" required>
+    </div>
+
+    <!-- Row 3: Roll Number, Contact Info -->
+    <div class="form-row">
+      <input type="text" id="rollNumber" placeholder="Your Roll Number" required>
+      <input type="text" id="contactInfo" placeholder="Contact Info" required>
+    </div>
+
+    <!-- Row 4: Image Upload -->
+    <div class="form-row">
+      <input type="file" id="imageUpload" accept="image/*">
+    </div>
+
+    <!-- Submit Button -->
+    <button type="submit">Submit</button>
+  </form>
+</section>
+
+
+
+    <!-- Dashboard -->
+    <section class="dashboard" id="dashboard">
+      <h2>Reported Items</h2>
+      <div id="itemsContainer"></div>
+    </section>
+  </main>
+
+  <footer>
+    <p>&copy; 2026 NIT-Warangal Lost & Found</p>
+  </footer>
+
+  <script src="script.js"></script>
+</body>
+</html>
