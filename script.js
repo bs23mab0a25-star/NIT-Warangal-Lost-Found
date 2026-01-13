@@ -1,5 +1,24 @@
-// Initialize items from localStorage or empty array
-let items = JSON.parse(localStorage.getItem('lostFoundItems')) || [];
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-app.js";
+import { getFirestore, collection, addDoc, onSnapshot, updateDoc, doc, deleteDoc } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-firestore.js";
+
+// TODO: Replace with your Firebase project configuration
+// 1. Go to https://console.firebase.google.com/
+// 2. Create a project -> Add Web App -> Copy config
+const firebaseConfig = {
+  apiKey: "YOUR_API_KEY",
+  authDomain: "YOUR_PROJECT_ID.firebaseapp.com",
+  projectId: "YOUR_PROJECT_ID",
+  storageBucket: "YOUR_PROJECT_ID.appspot.com",
+  messagingSenderId: "YOUR_SENDER_ID",
+  appId: "YOUR_APP_ID"
+};
+
+// Initialize Firebase
+const app = initializeApp(firebaseConfig);
+const db = getFirestore(app);
+const itemsCollection = collection(db, "lostFoundItems");
+
+let items = [];
 
 const itemForm = document.getElementById('itemForm');
 const itemsContainer = document.getElementById('itemsContainer');
@@ -32,6 +51,12 @@ function updateCategoryOptions() {
     filterCategory.appendChild(option);
   });
 }
+
+// Listen for real-time updates from Firestore
+onSnapshot(itemsCollection, (snapshot) => {
+  items = snapshot.docs.map(doc => ({ ...doc.data(), id: doc.id }));
+  renderItems();
+});
 
 // Render items
 function renderItems() {
@@ -66,13 +91,13 @@ function renderItems() {
     const claimBtn = document.createElement('button');
     claimBtn.classList.add('claim-btn');
     claimBtn.textContent = 'Claim Item';
-    claimBtn.onclick = () => claimItem(index);
+    claimBtn.onclick = () => claimItem(item.id);
 
     // Delete Button
     const deleteBtn = document.createElement('button');
     deleteBtn.classList.add('delete-btn');
     deleteBtn.textContent = 'Delete';
-    deleteBtn.onclick = () => deleteItem(index);
+    deleteBtn.onclick = () => deleteItem(item.id);
 
     card.appendChild(img);
     card.appendChild(details);
@@ -103,6 +128,10 @@ itemForm.addEventListener('submit', function(e) {
 
   // Read image as Base64
   if (imageFile) {
+    if (imageFile.size > 1024 * 1024) {
+      alert("Image is too large. Please choose an image under 1MB.");
+      return;
+    }
     const reader = new FileReader();
     reader.onload = function() {
       saveItem(reader.result);
@@ -112,7 +141,7 @@ itemForm.addEventListener('submit', function(e) {
     saveItem('');
   }
 
-  function saveItem(imageData) {
+  async function saveItem(imageData) {
     console.log('Saving item:', itemName, category, statusType);
     const newItem = {
       itemName,
@@ -126,12 +155,15 @@ itemForm.addEventListener('submit', function(e) {
       image: imageData,
       claimedBy: []
     };
-    items.push(newItem);
-    localStorage.setItem('lostFoundItems', JSON.stringify(items));
-    console.log('Items after save:', items);
-    alert('Item submitted successfully!');
-    renderItems();
-    itemForm.reset();
+    
+    try {
+      await addDoc(itemsCollection, newItem);
+      alert('Item submitted successfully!');
+      itemForm.reset();
+    } catch (e) {
+      console.error("Error adding document: ", e);
+      alert("Error submitting item. See console for details.");
+    }
   }
 });
 
@@ -141,16 +173,18 @@ filterCategory.addEventListener('change', renderItems);
 filterType.addEventListener('change', renderItems);
 
 // Claim item
-function claimItem(index) {
+async function claimItem(itemId) {
+  const item = items.find(i => i.id === itemId);
   const claimerName = prompt('Enter your name to claim this item:');
   const claimerRoll = prompt('Enter your roll number:');
   const claimerContact = prompt('Enter your contact number:');
   if (claimerName && claimerRoll && claimerContact) {
     const claimInfo = `Name: ${claimerName}, Roll: ${claimerRoll}, Contact: ${claimerContact}`;
-    if (!items[index].claimedBy.some(claim => claim.includes(claimerRoll))) {
-      items[index].claimedBy.push(claimInfo);
-      localStorage.setItem('lostFoundItems', JSON.stringify(items));
-      renderItems();
+    if (!item.claimedBy.some(claim => claim.includes(claimerRoll))) {
+      const itemRef = doc(db, "lostFoundItems", itemId);
+      await updateDoc(itemRef, {
+        claimedBy: [...item.claimedBy, claimInfo]
+      });
     } else {
       alert('This roll number has already claimed this item.');
     }
@@ -158,23 +192,22 @@ function claimItem(index) {
 }
 
 // Delete item (only original poster can delete)
-function deleteItem(index) {
+async function deleteItem(itemId) {
+  const item = items.find(i => i.id === itemId);
   let enteredValue;
   let fieldName;
-  if (items[index].deletePassword) {
+  if (item.deletePassword) {
     enteredValue = prompt('Enter your delete password to confirm deletion:');
     fieldName = 'delete password';
   } else {
     enteredValue = prompt('Enter your roll number to confirm deletion:');
     fieldName = 'roll number';
   }
-  const isValid = enteredValue && (items[index].deletePassword ? enteredValue === items[index].deletePassword : enteredValue === items[index].rollNumber);
+  const isValid = enteredValue && (item.deletePassword ? enteredValue === item.deletePassword : enteredValue === item.rollNumber);
   if (isValid) {
     const confirmDelete = confirm('Are you sure you want to delete this item? Only delete if it is claimed appropriately.');
     if (confirmDelete) {
-      items.splice(index, 1);
-      localStorage.setItem('lostFoundItems', JSON.stringify(items));
-      renderItems();
+      await deleteDoc(doc(db, "lostFoundItems", itemId));
     }
   } else {
     alert(`Incorrect ${fieldName}. Only the original poster can delete this item.`);
@@ -182,4 +215,4 @@ function deleteItem(index) {
 }
 
 // Initial render
-renderItems();
+// renderItems(); // Removed because onSnapshot handles the initial render
