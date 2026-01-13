@@ -1,22 +1,11 @@
-import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-app.js";
-import { getFirestore, collection, addDoc, onSnapshot, updateDoc, doc, deleteDoc } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-firestore.js";
+import { createClient } from "https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm";
 
-// TODO: Replace with your Firebase project configuration
-// 1. Go to https://console.firebase.google.com/
-// 2. Create a project -> Add Web App -> Copy config
-const firebaseConfig = {
-  apiKey: "YOUR_API_KEY",
-  authDomain: "YOUR_PROJECT_ID.firebaseapp.com",
-  projectId: "YOUR_PROJECT_ID",
-  storageBucket: "YOUR_PROJECT_ID.appspot.com",
-  messagingSenderId: "YOUR_SENDER_ID",
-  appId: "YOUR_APP_ID"
-};
-
-// Initialize Firebase
-const app = initializeApp(firebaseConfig);
-const db = getFirestore(app);
-const itemsCollection = collection(db, "lostFoundItems");
+// TODO: Replace with your Supabase project configuration
+// 1. Go to https://supabase.com/dashboard
+// 2. Create a project -> Settings -> API -> Copy URL and Anon Key
+const supabaseUrl = 'https://oeoggbtcqitbdftewdxp.supabase.co';
+const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im9lb2dnYnRjcWl0YmRmdGV3ZHhwIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjgzMjQyNzEsImV4cCI6MjA4MzkwMDI3MX0.Xg-D_RZwP9Yl9QQrYa21qkFumvoenWC8QHwcqwUlYs0';
+const supabase = createClient(supabaseUrl, supabaseKey);
 
 let items = [];
 
@@ -52,11 +41,31 @@ function updateCategoryOptions() {
   });
 }
 
-// Listen for real-time updates from Firestore
-onSnapshot(itemsCollection, (snapshot) => {
-  items = snapshot.docs.map(doc => ({ ...doc.data(), id: doc.id }));
+// Fetch items from Supabase
+async function fetchItems() {
+  const { data, error } = await supabase
+    .from('lostFoundItems')
+    .select('*');
+
+  if (error) {
+    console.error('Error fetching items:', error);
+    return;
+  }
+
+  items = data;
   renderItems();
-});
+}
+
+// Listen for real-time updates
+supabase
+  .channel('lostFoundItems')
+  .on('postgres_changes', { event: '*', schema: 'public', table: 'lostFoundItems' }, () => {
+    fetchItems();
+  })
+  .subscribe();
+
+// Initial fetch
+fetchItems();
 
 // Render items
 function renderItems() {
@@ -157,7 +166,12 @@ itemForm.addEventListener('submit', function(e) {
     };
     
     try {
-      await addDoc(itemsCollection, newItem);
+      const { error } = await supabase
+        .from('lostFoundItems')
+        .insert([newItem]);
+
+      if (error) throw error;
+
       alert('Item submitted successfully!');
       itemForm.reset();
     } catch (e) {
@@ -181,10 +195,12 @@ async function claimItem(itemId) {
   if (claimerName && claimerRoll && claimerContact) {
     const claimInfo = `Name: ${claimerName}, Roll: ${claimerRoll}, Contact: ${claimerContact}`;
     if (!item.claimedBy.some(claim => claim.includes(claimerRoll))) {
-      const itemRef = doc(db, "lostFoundItems", itemId);
-      await updateDoc(itemRef, {
-        claimedBy: [...item.claimedBy, claimInfo]
-      });
+      const { error } = await supabase
+        .from('lostFoundItems')
+        .update({ claimedBy: [...item.claimedBy, claimInfo] })
+        .eq('id', itemId);
+
+      if (error) alert('Error claiming item');
     } else {
       alert('This roll number has already claimed this item.');
     }
@@ -207,7 +223,12 @@ async function deleteItem(itemId) {
   if (isValid) {
     const confirmDelete = confirm('Are you sure you want to delete this item? Only delete if it is claimed appropriately.');
     if (confirmDelete) {
-      await deleteDoc(doc(db, "lostFoundItems", itemId));
+      const { error } = await supabase
+        .from('lostFoundItems')
+        .delete()
+        .eq('id', itemId);
+
+      if (error) alert('Error deleting item');
     }
   } else {
     alert(`Incorrect ${fieldName}. Only the original poster can delete this item.`);
