@@ -98,6 +98,7 @@ itemForm.addEventListener('submit', function(e) {
   const contactInfo = document.getElementById('contactInfo').value;
   const statusType = document.getElementById('statusType').value;
   const date = document.getElementById('date').value;
+  const deletePassword = document.getElementById('deletePassword').value;
   const imageFile = document.getElementById('imageUpload').files[0];
 
   // Read image as Base64
@@ -121,6 +122,7 @@ itemForm.addEventListener('submit', function(e) {
       contactInfo,
       statusType,
       date,
+      deletePassword,
       image: imageData,
       claimedBy: []
     };
@@ -157,8 +159,17 @@ function claimItem(index) {
 
 // Delete item (only original poster can delete)
 function deleteItem(index) {
-  const enteredRoll = prompt('Enter your roll number to confirm deletion:');
-  if (enteredRoll && enteredRoll === items[index].rollNumber) {
+  let enteredValue;
+  let fieldName;
+  if (items[index].deletePassword) {
+    enteredValue = prompt('Enter your delete password to confirm deletion:');
+    fieldName = 'delete password';
+  } else {
+    enteredValue = prompt('Enter your roll number to confirm deletion:');
+    fieldName = 'roll number';
+  }
+  const isValid = enteredValue && (items[index].deletePassword ? enteredValue === items[index].deletePassword : enteredValue === items[index].rollNumber);
+  if (isValid) {
     const confirmDelete = confirm('Are you sure you want to delete this item? Only delete if it is claimed appropriately.');
     if (confirmDelete) {
       items.splice(index, 1);
@@ -166,7 +177,7 @@ function deleteItem(index) {
       renderItems();
     }
   } else {
-    alert('Incorrect roll number. Only the original poster can delete this item.');
+    alert(`Incorrect ${fieldName}. Only the original poster can delete this item.`);
   }
 }
 
