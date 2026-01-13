@@ -1,252 +1,84 @@
-import { createClient } from "https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm";
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>NIT-Warangal Lost & Found</title>
+  <link rel="stylesheet" href="sss.css">
+</head>
+<body>
+  <header>
+    <h1>NIT-Warangal Lost & Found</h1>
+  </header>
 
-// TODO: Replace with your Supabase project configuration
-// 1. Go to https://supabase.com/dashboard
-// 2. Create a project -> Settings -> API -> Copy URL and Anon Key
-const supabaseUrl = 'https://qxwszibzexnryecemxdi.supabase.co';
-const supabaseKey = 'sb_publishable_k0H5K_cQ4Pj166ZVWL8kiw_CNMiztJv';
-const supabaseClient = createClient(supabaseUrl, supabaseKey);
+  <main>
+    <!-- Lost/Found Item Form -->
+   <section class="form-section">
+  <h2>Report Lost/Found Item</h2>
+  <form id="itemForm">
+    <!-- Row 1: Name, Category, Type -->
+    <div class="form-row">
+      <input type="text" id="itemName" placeholder="Item Name" required>
+      <input type="text" id="category" placeholder="Category (Phone, Wallet, ID...)" required>
+      <select id="statusType" required>
+        <option value="Lost">Lost</option>
+        <option value="Found">Found</option>
+      </select>
+    </div>
 
+    <!-- Row 2: Location, Date -->
+    <div class="form-row">
+      <input type="text" id="location" placeholder="Location" required>
+      <input type="date" id="date" required>
+    </div>
 
-let items = [];
+    <!-- Row 3: Roll Number, Contact Info -->
+    <div class="form-row">
+      <input type="text" id="rollNumber" placeholder="Your Roll Number" required>
+      <input type="text" id="contactInfo" placeholder="Contact Info" required>
+    </div>
 
-const itemForm = document.getElementById('itemForm');
-const itemsContainer = document.getElementById('itemsContainer');
-const searchName = document.getElementById('searchName');
-const filterCategory = document.getElementById('filterCategory');
-const filterType = document.getElementById('filterType');
+    <!-- Row 4: Delete Password -->
+    <div class="form-row">
+      <input type="password" id="deletePassword" placeholder="Set Delete Password" required>
+    </div>
 
-// Get filtered items
-function getFilteredItems() {
-  const nameQuery = searchName.value.toLowerCase();
-  const categoryQuery = filterCategory.value;
-  const typeQuery = filterType.value;
+    <!-- Row 5: Image Upload -->
+    <div class="form-row">
+      <input type="file" id="imageUpload" accept="image/*">
+    </div>
 
-  return items.filter(item => {
-    const matchesName = item.itemName.toLowerCase().includes(nameQuery);
-    const matchesCategory = !categoryQuery || item.category === categoryQuery;
-    const matchesType = !typeQuery || item.statusType === typeQuery;
-    return matchesName && matchesCategory && matchesType;
-  });
-}
+    <!-- Submit Button -->
+    <button type="submit">Submit</button>
+  </form>
+</section>
 
-// Update category options
-function updateCategoryOptions() {
-  const categories = [...new Set(items.map(item => item.category))];
-  filterCategory.innerHTML = '<option value="">All Categories</option>';
-  categories.forEach(cat => {
-    const option = document.createElement('option');
-    option.value = cat;
-    option.textContent = cat;
-    filterCategory.appendChild(option);
-  });
-}
+    <!-- Filters -->
+    <section class="filter-section">
+      <h3>Filter Items</h3>
+      <input type="text" id="searchName" placeholder="Search by item name">
+      <select id="filterCategory">
+        <option value="">All Categories</option>
+      </select>
+      <select id="filterType">
+        <option value="">All Types</option>
+        <option value="Lost">Lost</option>
+        <option value="Found">Found</option>
+      </select>
+    </section>
 
-// Fetch items from Supabase
-async function fetchItems() {
-  const { data, error } = await supabaseClient
-    .from('lostfound_items')
-    .select('*');
+    <!-- Dashboard -->
+    <section class="dashboard" id="dashboard">
+      <h2>Reported Items</h2>
+      <div id="itemsContainer"></div>
+    </section>
+  </main>
 
-  if (error) {
-    console.error('Error fetching items:', error);
-    return;
-  }
+  <footer>
+    <p>&copy; 2024 NIT-Warangal Lost & Found @Shashikiran</p>
+  </footer>
 
-  items = data.map(item => ({
-    ...item,
-    claimedBy: item.claimedBy || []
-  }));
-  renderItems();
-}
+  <script type="module" src="script.js"></script>
 
-// Listen for real-time updates
-supabaseClient
-  .channel('lostfound_items')
-  .on('postgres_changes', { event: '*', schema: 'public', table: 'lostfound_items' }, () => {
-    fetchItems();
-  })
-  .subscribe();
-
-// Initial fetch
-fetchItems();
-
-// Render items
-function renderItems() {
-  console.log('Rendering items, total items:', items.length);
-  updateCategoryOptions();
-  const filteredItems = getFilteredItems();
-  console.log('Filtered items:', filteredItems.length);
-  itemsContainer.innerHTML = '';
-
-  filteredItems.forEach((item, index) => {
-    const card = document.createElement('div');
-    card.classList.add('item-card');
-
-    const img = document.createElement('img');
-    img.src = item.image || 'https://via.placeholder.com/150';
-    img.alt = item.itemName;
-
-    const details = document.createElement('div');
-    details.classList.add('item-details');
-    details.innerHTML = `
-      <p><strong>Name:</strong> ${item.itemName}</p>
-      <p><strong>Category:</strong> ${item.category}</p>
-      <p><strong>Location:</strong> ${item.location}</p>
-      <p><strong>Roll Number:</strong> ${item.rollNumber}</p>
-      <p><strong>Contact:</strong> ${item.contactInfo}</p>
-      <p><strong>Type:</strong> ${item.statusType}</p>
-      <p><strong>Date:</strong> ${item.date}</p>
-      <p class="claim-list"><strong>Claimed By:</strong> ${item.claimedBy.length ? item.claimedBy.join('<br>') : 'None'}</p>
-    `;
-
-    // Claim Button
-    const claimBtn = document.createElement('button');
-    claimBtn.classList.add('claim-btn');
-    claimBtn.textContent = 'Claim Item';
-    claimBtn.onclick = () => claimItem(item.id);
-
-    // Delete Button
-    const deleteBtn = document.createElement('button');
-    deleteBtn.classList.add('delete-btn');
-    deleteBtn.textContent = 'Delete';
-    deleteBtn.onclick = () => deleteItem(item.id);
-
-    card.appendChild(img);
-    card.appendChild(details);
-    card.appendChild(claimBtn);
-    card.appendChild(deleteBtn);
-
-    card.title = `Item: ${item.itemName}\nCategory: ${item.category}\nLocation: ${item.location}\nDate: ${item.date}\nContact: ${item.contactInfo}`;
-
-    card.style.animationDelay = `${index * 0.1}s`;
-
-    itemsContainer.appendChild(card);
-  });
-}
-
-// Add new item
-itemForm.addEventListener('submit', async function(e) {
-  e.preventDefault();
-
-  const itemName = document.getElementById('itemName').value;
-  const category = document.getElementById('category').value;
-  const location = document.getElementById('location').value;
-  const rollNumber = document.getElementById('rollNumber').value;
-  const contactInfo = document.getElementById('contactInfo').value;
-  const statusType = document.getElementById('statusType').value;
-  const date = document.getElementById('date').value;
-  const deletePassword = document.getElementById('deletePassword').value;
-  const imageFile = document.getElementById('imageUpload').files[0];
-
-  let imageUrl = '';
-
-  // Upload image to Supabase Storage
-  if (imageFile) {
-    const fileName = `${Date.now()}_${imageFile.name.replace(/\s/g, '_')}`;
-    const { data, error } = await supabaseClient.storage
-      .from('shashi')
-      .upload(fileName, imageFile);
-
-    if (error) {
-      console.error('Error uploading image:', error);
-      alert('Error uploading image. Please try again.');
-      return;
-    }
-
-    const { data: publicUrlData } = supabaseClient.storage
-      .from('shashi')
-      .getPublicUrl(fileName);
-    
-    imageUrl = publicUrlData.publicUrl;
-  }
-
-  await saveItem(imageUrl);
-
-  async function saveItem(imageUrl) {
-    console.log('Saving item:', itemName, category, statusType);
-    const newItem = {
-      itemName,
-      category,
-      location,
-      rollNumber,
-      contactInfo,
-      statusType,
-      date,
-      deletePassword,
-      image: imageUrl,
-      claimedBy: []
-    };
-    
-    try {
-      const { error } = await supabaseClient
-        .from('lostfound_items')
-        .insert([newItem]);
-
-      if (error) throw error;
-
-      alert('Item submitted successfully!');
-      itemForm.reset();
-    } catch (e) {
-      console.error("Error adding document: ", e);
-      alert("Error submitting item. See console for details.");
-    }
-  }
-});
-
-// Filter event listeners
-searchName.addEventListener('input', renderItems);
-filterCategory.addEventListener('change', renderItems);
-filterType.addEventListener('change', renderItems);
-
-// Claim item
-async function claimItem(itemId) {
-  const item = items.find(i => i.id === itemId);
-  const claimerName = prompt('Enter your name to claim this item:');
-  const claimerRoll = prompt('Enter your roll number:');
-  const claimerContact = prompt('Enter your contact number:');
-  if (claimerName && claimerRoll && claimerContact) {
-    const claimInfo = `Name: ${claimerName}, Roll: ${claimerRoll}, Contact: ${claimerContact}`;
-    if (!item.claimedBy.some(claim => claim.includes(claimerRoll))) {
-      const { error } = await supabaseClient
-        .from('lostfound_items')
-        .update({ claimedBy: [...item.claimedBy, claimInfo] })
-        .eq('id', itemId);
-
-      if (error) alert('Error claiming item');
-    } else {
-      alert('This roll number has already claimed this item.');
-    }
-  }
-}
-
-// Delete item (only original poster can delete)
-async function deleteItem(itemId) {
-  const item = items.find(i => i.id === itemId);
-  let enteredValue;
-  let fieldName;
-  if (item.deletePassword) {
-    enteredValue = prompt('Enter your delete password to confirm deletion:');
-    fieldName = 'delete password';
-  } else {
-    enteredValue = prompt('Enter your roll number to confirm deletion:');
-    fieldName = 'roll number';
-  }
-  const isValid = enteredValue && (item.deletePassword ? enteredValue === item.deletePassword : enteredValue === item.rollNumber);
-  if (isValid) {
-    const confirmDelete = confirm('Are you sure you want to delete this item? Only delete if it is claimed appropriately.');
-    if (confirmDelete) {
-      const { error } = await supabaseClient
-        .from('lostfound_items')
-        .delete()
-        .eq('id', itemId);
-
-      if (error) alert('Error deleting item');
-    }
-  } else {
-    alert(`Incorrect ${fieldName}. Only the original poster can delete this item.`);
-  }
-}
-
-// Initial render
-// renderItems(); // Removed because onSnapshot handles the initial render
+</body>
+</html>
