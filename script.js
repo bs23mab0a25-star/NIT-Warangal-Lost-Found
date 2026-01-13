@@ -3,8 +3,8 @@ import { createClient } from "https://cdn.jsdelivr.net/npm/@supabase/supabase-js
 // TODO: Replace with your Supabase project configuration
 // 1. Go to https://supabase.com/dashboard
 // 2. Create a project -> Settings -> API -> Copy URL and Anon Key
-const supabaseUrl = 'https://oeoggbtcqitbdftewdxp.supabase.co';
-const supabaseKey = 'sb_publishable_tOP7aneVy0mXUWbBLVwUIw_voEE__K5';
+const supabaseUrl = 'https://qxwszibzexnryecemxdi.supabase.co';
+const supabaseKey = 'sb_publishable_k0H5K_cQ4Pj166ZVWL8kiw_CNMiztJv';
 const supabaseClient = createClient(supabaseUrl, supabaseKey);
 
 
@@ -53,7 +53,10 @@ async function fetchItems() {
     return;
   }
 
-  items = data;
+  items = data.map(item => ({
+    ...item,
+    claimedBy: item.claimedBy || []
+  }));
   renderItems();
 }
 
