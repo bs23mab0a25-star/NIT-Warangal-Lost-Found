@@ -4,7 +4,7 @@ import { createClient } from "https://cdn.jsdelivr.net/npm/@supabase/supabase-js
 // 1. Go to https://supabase.com/dashboard
 // 2. Create a project -> Settings -> API -> Copy URL and Anon Key
 const supabaseUrl = 'https://oeoggbtcqitbdftewdxp.supabase.co';
-const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im9lb2dnYnRjcWl0YmRmdGV3ZHhwIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjgzMjQyNzEsImV4cCI6MjA4MzkwMDI3MX0.Xg-D_RZwP9Yl9QQrYa21qkFumvoenWC8QHwcqwUlYs0';
+const supabaseKey = 'sb_publishable_tOP7aneVy0mXUWbBLVwUIw_voEE__K5';
 const supabase = createClient(supabaseUrl, supabaseKey);
 
 let items = [];
@@ -237,3 +237,4 @@ async function deleteItem(itemId) {
 
 // Initial render
 // renderItems(); // Removed because onSnapshot handles the initial render
+
