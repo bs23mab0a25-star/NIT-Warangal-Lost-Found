@@ -35,8 +35,10 @@ function updateCategoryOptions() {
 
 // Render items
 function renderItems() {
+  console.log('Rendering items, total items:', items.length);
   updateCategoryOptions();
   const filteredItems = getFilteredItems();
+  console.log('Filtered items:', filteredItems.length);
   itemsContainer.innerHTML = '';
 
   filteredItems.forEach((item, index) => {
@@ -110,6 +112,7 @@ itemForm.addEventListener('submit', function(e) {
   }
 
   function saveItem(imageData) {
+    console.log('Saving item:', itemName, category, statusType);
     const newItem = {
       itemName,
       category,
@@ -123,6 +126,8 @@ itemForm.addEventListener('submit', function(e) {
     };
     items.push(newItem);
     localStorage.setItem('lostFoundItems', JSON.stringify(items));
+    console.log('Items after save:', items);
+    alert('Item submitted successfully!');
     renderItems();
     itemForm.reset();
   }
@@ -152,11 +157,16 @@ function claimItem(index) {
 
 // Delete item (only original poster can delete)
 function deleteItem(index) {
-  const confirmDelete = confirm('Are you sure you want to delete this item? Only delete if it is claimed appropriately.');
-  if (confirmDelete) {
-    items.splice(index, 1);
-    localStorage.setItem('lostFoundItems', JSON.stringify(items));
-    renderItems();
+  const enteredRoll = prompt('Enter your roll number to confirm deletion:');
+  if (enteredRoll && enteredRoll === items[index].rollNumber) {
+    const confirmDelete = confirm('Are you sure you want to delete this item? Only delete if it is claimed appropriately.');
+    if (confirmDelete) {
+      items.splice(index, 1);
+      localStorage.setItem('lostFoundItems', JSON.stringify(items));
+      renderItems();
+    }
+  } else {
+    alert('Incorrect roll number. Only the original poster can delete this item.');
   }
 }
 
