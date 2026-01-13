@@ -5,7 +5,8 @@ import { createClient } from "https://cdn.jsdelivr.net/npm/@supabase/supabase-js
 // 2. Create a project -> Settings -> API -> Copy URL and Anon Key
 const supabaseUrl = 'https://oeoggbtcqitbdftewdxp.supabase.co';
 const supabaseKey = 'sb_publishable_tOP7aneVy0mXUWbBLVwUIw_voEE__K5';
-const supabase = createClient(supabaseUrl, supabaseKey);
+const supabaseClient = createClient(supabaseUrl, supabaseKey);
+
 
 let items = [];
 
@@ -43,7 +44,7 @@ function updateCategoryOptions() {
 
 // Fetch items from Supabase
 async function fetchItems() {
-  const { data, error } = await supabase
+  const { data, error } = await supabaseClient
     .from('lostfound_items')
     .select('*');
 
@@ -57,7 +58,7 @@ async function fetchItems() {
 }
 
 // Listen for real-time updates
-supabase
+supabaseClient
   .channel('lostfound_items')
   .on('postgres_changes', { event: '*', schema: 'public', table: 'lostfound_items' }, () => {
     fetchItems();
@@ -140,7 +141,7 @@ itemForm.addEventListener('submit', async function(e) {
   // Upload image to Supabase Storage
   if (imageFile) {
     const fileName = `${Date.now()}_${imageFile.name.replace(/\s/g, '_')}`;
-    const { data, error } = await supabase.storage
+    const { data, error } = await supabaseClient.storage
       .from('shashi')
       .upload(fileName, imageFile);
 
@@ -150,7 +151,7 @@ itemForm.addEventListener('submit', async function(e) {
       return;
     }
 
-    const { data: publicUrlData } = supabase.storage
+    const { data: publicUrlData } = supabaseClient.storage
       .from('shashi')
       .getPublicUrl(fileName);
     
@@ -175,7 +176,7 @@ itemForm.addEventListener('submit', async function(e) {
     };
     
     try {
-      const { error } = await supabase
+      const { error } = await supabaseClient
         .from('lostfound_items')
         .insert([newItem]);
 
@@ -204,7 +205,7 @@ async function claimItem(itemId) {
   if (claimerName && claimerRoll && claimerContact) {
     const claimInfo = `Name: ${claimerName}, Roll: ${claimerRoll}, Contact: ${claimerContact}`;
     if (!item.claimedBy.some(claim => claim.includes(claimerRoll))) {
-      const { error } = await supabase
+      const { error } = await supabaseClient
         .from('lostfound_items')
         .update({ claimedBy: [...item.claimedBy, claimInfo] })
         .eq('id', itemId);
@@ -232,7 +233,7 @@ async function deleteItem(itemId) {
   if (isValid) {
     const confirmDelete = confirm('Are you sure you want to delete this item? Only delete if it is claimed appropriately.');
     if (confirmDelete) {
-      const { error } = await supabase
+      const { error } = await supabaseClient
         .from('lostfound_items')
         .delete()
         .eq('id', itemId);
