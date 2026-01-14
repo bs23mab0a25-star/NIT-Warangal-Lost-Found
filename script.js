@@ -1,10 +1,10 @@
 import { createClient } from "https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm";
 
-// TODO: Replace with your Supabase project configuration
-// 1. Go to https://supabase.com/dashboard
-// 2. Create a project -> Settings -> API -> Copy URL and Anon Key
-const supabaseUrl = 'https://oeoggbtcqitbdftewdxp.supabase.co';
-const supabaseKey = 'sb_publishable_tOP7aneVy0mXUWbBLVwUIw_voEE__K5';
+// Public Supabase configuration (anon key) - safe for public reads/writes
+// Make sure your Supabase table `lostfound_items` has a public SELECT policy
+// and your storage bucket (if used) is public for file reads.
+const supabaseUrl = 'https://qxwszibzexnryecemxdi.supabase.co';
+const supabaseKey = 'sb_publishable_k0H5K_cQ4Pj166ZVWL8kiw_CNMiztJv';
 const supabaseClient = createClient(supabaseUrl, supabaseKey);
 
 
@@ -44,17 +44,35 @@ function updateCategoryOptions() {
 
 // Fetch items from Supabase
 async function fetchItems() {
-  const { data, error } = await supabaseClient
-    .from('lostfound_items')
-    .select('*');
+  try {
+    const { data, error } = await supabaseClient
+      .from('lostfound_items')
+      .select('*');
 
-  if (error) {
-    console.error('Error fetching items:', error);
-    return;
+    if (error) {
+      console.error('Error fetching items:', error);
+      return;
+    }
+
+    // Normalize items to avoid null/undefined fields breaking the UI
+    items = (data || []).map(i => ({
+      id: i.id,
+      itemName: i.itemName || 'Unnamed item',
+      category: i.category || 'Uncategorized',
+      location: i.location || 'Unknown',
+      rollNumber: i.rollNumber || '',
+      contactInfo: i.contactInfo || '',
+      statusType: i.statusType || 'Lost',
+      date: i.date || '',
+      deletePassword: i.deletePassword || '',
+      image: i.image || '',
+      claimedBy: Array.isArray(i.claimedBy) ? i.claimedBy : (i.claimedBy ? [i.claimedBy] : [])
+    }));
+
+    renderItems();
+  } catch (err) {
+    console.error('Unexpected error fetching items:', err);
   }
-
-  items = data;
-  renderItems();
 }
 
 // Listen for real-time updates
@@ -94,7 +112,7 @@ function renderItems() {
       <p><strong>Contact:</strong> ${item.contactInfo}</p>
       <p><strong>Type:</strong> ${item.statusType}</p>
       <p><strong>Date:</strong> ${item.date}</p>
-      <p class="claim-list"><strong>Claimed By:</strong> ${item.claimedBy.length ? item.claimedBy.join('<br>') : 'None'}</p>
+      <p class="claim-list"><strong>Claimed By:</strong> ${item.claimedBy && item.claimedBy.length ? item.claimedBy.join('<br>') : 'None'}</p>
     `;
 
     // Claim Button
